@@ -285,32 +285,29 @@ $app->post('/appendtoStreak', function () use ($app) {
             if((isset($_FILES['video']) && $_FILES['video'] != "" ) && (isset($_FILES['image']) && $_FILES['image'] != "")) {
 
                 if(isset($_FILES['video']) && $_FILES['video'] != "") {
-                        $filesize = ($_FILES['video']['size'])/(1024*1024);
+                    $filesize = ($_FILES['video']['size'])/(1024*1024);
 
-                        $type = explode('.',$_FILES['video']['name']);            
-                        $videFileType = $type[1];
+                    $type = explode('.',$_FILES['video']['name']);
+                    $videFileType = $type[1];
 
-                        if($videFileType != "mp4" && $videFileType != "avi" && $videFileType != "mov" && $videFileType != "3gp" && $videFileType != "mpeg")
-                        {
-                            $response["status"] = 0;
-                            $response["message"] = "File format not supported";
-                            
-                            echoResponse(200, $response);
-                            exit;
-                        }else{
-                            $video_name = 'streak-'.$varr.'.'.$type[1];
-                            move_uploaded_file($_FILES['video']['tmp_name'], $uploaddir.$video_name);
-                        }
+                    if($videFileType != "mp4" && $videFileType != "avi" && $videFileType != "mov" && $videFileType != "3gp" && $videFileType != "mpeg")
+                    {
+                        $response["status"] = 0;
+                        $response["message"] = "File format not supported";
+                        
+                        echoResponse(200, $response);
+                        exit;
+                    }else{
+                        $video_name = 'streak-'.$varr.'.'.$type[1];
+                        move_uploaded_file($_FILES['video']['tmp_name'], $uploaddir.$video_name);
+                    }
                 }else if($filesize > 200){
                     $response["status"] = 0;
                     $response["message"] = "Please try to upload File having size less than 200 MB";
                     
                     echoResponse(200, $response);
                     exit;
-
-
                 }else{
-
                     $response["status"] = 0;
                     $response["message"] = "Required field(s) video is missing or empty";
                     
@@ -335,11 +332,11 @@ $app->post('/appendtoStreak', function () use ($app) {
                 }
 
             }else{
-                    $response["status"] = 0;
-                    $response["message"] = "Required field(s) video or image are missing or empty";
-                    
-                    echoResponse(200, $response);
-                    exit;
+                $response["status"] = 0;
+                $response["message"] = "Required field(s) video or image are missing or empty";
+                
+                echoResponse(200, $response);
+                exit;
             }
 
         }else{
@@ -368,18 +365,18 @@ $app->post('/appendtoStreak', function () use ($app) {
                 $vidArr = array();
                 $videos = $db->getStreakVideos($id);
 
-                    $streakArr['id'] = (int)$id;
-                    if(count($videos)>0){
-                        $streakArr['name']  = $videos['streak'];
-                        $streakArr['video'] = $videos['vidarr'];
-                    }
+                $streakArr['id'] = (int)$id;
+                if(count($videos)>0){
+                    $streakArr['name']  = $videos['streak'];
+                    $streakArr['video'] = $videos['vidarr'];
+                }
 
-                    $response['status'] = 1;
-                    $response["state"] = $state;
-                    $response["message"] = "Streak successfully appended";
-                    $response["data"] = $streakArr;
+                $response['status'] = 1;
+                $response["state"] = $state;
+                $response["message"] = "Streak successfully appended";
+                $response["data"] = $streakArr;
 
-                    echoResponse(200, $response);
+                echoResponse(200, $response);
 
             }else{
 
@@ -455,8 +452,6 @@ $app->get('/viewStreak', function () use ($app) {
 
             echoResponse(200, $response);
         }
-
-
 }); //viewStreak
 
 /************************************************************************************************************/
@@ -464,6 +459,8 @@ $app->get('/viewStreak', function () use ($app) {
 $app->get('/finalizeStreak', function() use ($app){
     $response  = array();
     $streakArr = array();
+    $res = array();
+
     $db = new DbOperation();
 
     $id = isset($_GET['id']) ? $_GET['id'] : '';
@@ -472,11 +469,25 @@ $app->get('/finalizeStreak', function() use ($app){
     if($id != ''){
         // Fetch data of all videos into a variable $res
         $res = $db->getVideos($id);
+        $count = $res['count'];
+        $videos_String = $res['string'];
+
+        for($i=0;$i<$count;$i++){
+            $video_dimension[] = '['.$i.':v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setsar=1[v'.$i.'];';
+        }
+        $impload_videos = implode($video_dimension,'');
+
+        for($j=0;$j<$count;$j++){
+            $audio[] = '[v'.$j.']['.$j.':a]';
+        }
+
+        $impload_audios = implode($audio, '');
+        
         if(!empty($res)){
             // Final path of merge video
             $finalVideo = '/var/www/html/uploads/streak-'.$var.'.mp4';
             // Merging videos command
-            exec("ffmpeg $res -filter_complex '[0]scale=720x1080,setsar=1/1[a];[1]scale=720x1080,setsar=1/1[b];[2]scale=720x1080,setsar=1/1[c];[3]scale=720x1080,setsar=1/1[d];[4]scale=720x1080,setsar=1/1[e];[5]scale=720x1080,setsar=1/1[f];[6]scale=720x1080,setsar=1/1[g];[7]scale=720x1080,setsar=1/1[h]; [a][0:a][b][1:a][c][2:a][d][3:a][e][4:a][f][5:a][g][6:a][h][7:a]  concat=n=8:v=1:a=1[v][a]' -map '[v]' -map '[a]' -strict -2 $finalVideo");
+            exec("ffmpeg $videos_String -filter_complex '$impload_videos $impload_audios concat=n=$count:v=1:a=1[v][a]' -map '[v]' -map '[a]'  -strict -2 $finalVideo");
 
             // Name of merge video which is saved in database
             $videoname = 'streak-'.$var.'.mp4';
@@ -487,13 +498,6 @@ $app->get('/finalizeStreak', function() use ($app){
             $response['status'] = 1;
             $response["message"] = "Videos are merged successfully";
             $response["data"] = $savePath;
-            echoResponse(200, $response);
-        }else{
-            // Print response if videos are less or more than 8
-            $response["status"] = 0;
-            $response["message"] = "Please Upload all Videos";
-            $response["data"] = $res;
-
             echoResponse(200, $response);
         }
     }else{
@@ -574,7 +578,6 @@ $app->post('/endStreak', function() use ($app){
         echoResponse(200, $response);
     }
     //echo"<pre>";print_r($_POST);
-
 });
 /**********************************************************************************************************/
 //For Updating the Name of Streak

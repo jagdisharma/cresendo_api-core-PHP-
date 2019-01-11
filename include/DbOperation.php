@@ -205,12 +205,11 @@ public function getState($streak_id){
     //getting the data in a varibale
     $data = $res->fetch_all();
     //closing the statment
-    //$stmt1->close();
+    $stmt1->close();
     //echo"<pre>";print_r($data);exit();
 
     if(count($data) > 0){
       $state = $data[0][0];
-      //echo$state;exit();
       return $state;
     }else{
       return 0;
@@ -218,13 +217,11 @@ public function getState($streak_id){
 
 }
 
-
-
 /*********************** Fetch videos acording to streak ************************/
-
 
 public function getVideos($streakId){
       $streakdata = array();
+      $str = array();
 
       //fetching all videos path from database
       $stmt = $this->con->prepare('SELECT video_id as vid, video_name as name FROM `streak_videos` WHERE video_streakid = ? ORDER BY video_id ASC');
@@ -236,20 +233,23 @@ public function getVideos($streakId){
       $res = $stmt->get_result();
       //getting the data in a varibale
       $data = $res->fetch_all();
-      //print_r($data);
+     // echo"<pre>";print_r($data);exit();
+      $total_videos = count($data);
+      //echo "total_videos------>".$total_videos;exit();
+      $stmt->close();
 
-      if(count($data) == 8){
-        for($i=0; $i<count($data); $i++){        
-          $streakdata[] = '-i /var/www/html/uploads/'.$data[$i][1];
+      if($total_videos){ 
+        for($i=0; $i<$total_videos; $i++){        
+          $str[] = '-i /var/www/html/uploads/'.$data[$i][1];
         }
-
-        $str = implode(' ', $streakdata);
-        
-        return $str;
+        //echo"<pre>";print_r($str);exit();
+        $streakdata['count'] = $total_videos;
+        $streakdata['string'] = implode(' ', $str);
+        //echo"<pre>";print_r($streakdata);exit();
+        return $streakdata;
       }else{
         return $streakdata;
       }
-      
        //echo"<pre>";print_r($str);
        //exit();
 }

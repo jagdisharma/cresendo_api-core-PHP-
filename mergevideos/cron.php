@@ -68,7 +68,7 @@ if(count($result)>0){
 				// Put your private key's passphrase here:
 				$passphrase = 'Lbim2201';
 				// Put your alert message here:
-				$message = 'A push notification has been sent CRESENDO!';
+				$message = 'A push notification has been sent!';
 				////////////////////////////////////////////////////////////////////////////////
 				$ctx = stream_context_create();
 				stream_context_set_option($ctx, 'ssl', 'local_cert', 'pushcert.pem');
